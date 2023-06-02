@@ -113,16 +113,17 @@ def isProblem(task: str, res: str)->bool:
         cel = res
     graf.append(ujEl)
     
-    return vanKor(graf, ujEl, cel)
+    return vanKor(graf, ujEl, cel, [])
     
-def vanKor(graf: list[El], el: El, cel: str) -> bool:
+def vanKor(graf: list[El], el: El, cel: str, voltEl: list[El]) -> bool:
     if el.to == cel:
         return True
     
     van = False
     for g in graf:
-        if g.frm == el.to:
-            van = van or vanKor(graf, g, cel)
+        if g.frm == el.to and not g in voltEl:
+            voltEl.append(g)
+            van = van or vanKor(graf, g, cel, voltEl)
     return van
 
 
