@@ -18,7 +18,9 @@ class Resource:
     def rem(self, task: str) -> None:
         if not task in self.tasks:
             return
-        self.wantRem.append(task)
+        if not task in self.wantRem:
+            self.wantRem.append(task)
+            self.endRem()
 
     def endRem(self):
         for t in self.wantRem:
@@ -71,7 +73,6 @@ class Resources:
             for r in resources.resources:
                 if r.nev == e and task in r.tasks:
                     r.rem(task)
-                    return
         return
 
 
@@ -89,15 +90,41 @@ class Task:
         return self.steps >= len(self.tasks)
 
     def step(self) -> None:
+        for res in resources.resources:
+            benneVan = self.nev in res.tasks
+            nemAzElso = len(res.tasks) > 0 and res.tasks[0] != self.nev
+
+            oAMasodik = len(res.tasks) > 1 and res.tasks[1] == self.nev
+            vanRemEsTorolniAkarom = len(res.wantRem) >0 and res.wantRem[0] == res.tasks[0]
+            if benneVan:
+                #Ha benne van akkor úgy mehet tovább ha
+                #   Ő az első
+                #   Nem Ő az első, de Ő a második és az elsőt törölni akarom
+                #Azaz akkor kell kilépni, ha nem ő az első, kivéve akkor, ha ő a második és az elsőt ki akarom venni
+                rossz = False
+                if nemAzElso:
+                    rossz = True
+                if rossz and oAMasodik and vanRemEsTorolniAkarom:
+                    rossz = False
+                if rossz: return
         if self.isDone():
             resources.allRem(self.nev)
             return
+        for r in resources.resources:
+            if self.nev in r.tasks and len(r.tasks) >= 2 and len(r.wantRem) > 0:
+                if r.tasks[1] == self.nev:
+                    r.endRem()
+                    return
+
         if self.steps >= len(self.tasks):
             return
         cur = self.tasks[self.steps]
 
         if cur[0] == '+':
             res = cur[1:]
+            for r in resources.resources:
+                if r.nev == res and len(r.tasks) == 1 and len(r.wantRem) > 0:
+                    r.endRem()
             resources.add(self.nev, res, self.steps)
 
         if cur[0] == '-':
@@ -187,13 +214,21 @@ def vanKor(graf: list[El], el: El, cel: str, elso: bool) -> str:
             break
     return van
 
+def p(string:str)->None:
+    if debug:
+        print(string)
 
 for line in sys.stdin:
     if len(line.strip()) != 0:
         tasks.append(Task(line))
 
+kor = 1
+debug = True
 while not isAllDone():
+    # p(f"{kor}. Kör")
     for task in tasks:
         task.step()
     for res in resources.resources:
-        res.endRem()
+        if len(res.tasks) <= 1:
+            res.endRem()
+    kor+=1
